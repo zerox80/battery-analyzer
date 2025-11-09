@@ -330,7 +330,7 @@ private fun RowScope.UsageStatCard(
     contentColor: Color
 ) {
     Surface(
-        modifier = weight(1f),
+        modifier = Modifier.weight(1f),
         shape = MaterialTheme.shapes.large,
         color = containerColor,
         tonalElevation = 2.dp
