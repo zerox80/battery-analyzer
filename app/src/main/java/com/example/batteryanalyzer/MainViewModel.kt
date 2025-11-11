@@ -147,7 +147,10 @@ class MainViewModel(
     fun manualUnblockPackage(packageName: String) {
         viewModelScope.launch {
             Log.i(TAG, "manualUnblockPackage -> $packageName")
-            manualUnblockCooldown[packageName] = System.currentTimeMillis() + blockThresholdMillisRef.get()
+            val now = System.currentTimeMillis()
+            val scheduledReblockAt = _uiState.value.firewallState.reactivateAt
+            val cooldownUntil = scheduledReblockAt?.takeIf { it > now } ?: (now + blockThresholdMillisRef.get())
+            manualUnblockCooldown[packageName] = cooldownUntil
             val current = _uiState.value.firewallBlockedPackages.toMutableSet()
             if (current.remove(packageName)) {
                 Log.d(TAG, "Package removed from manual block set: $packageName")
