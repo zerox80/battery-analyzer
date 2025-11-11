@@ -8,6 +8,7 @@ import androidx.work.Configuration
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import com.example.batteryanalyzer.firewall.VpnFirewallService
 import com.example.batteryanalyzer.work.UsageSyncWorker
 import com.example.batteryanalyzer.di.AppContainer
 import java.util.concurrent.TimeUnit
@@ -31,14 +32,23 @@ class BatteryAnalyzerApp : Application(), Configuration.Provider {
         }
 
         val manager = getSystemService(NotificationManager::class.java) ?: return
-        val channel = NotificationChannel(
+        val usageChannel = NotificationChannel(
             UsageSyncWorker.NOTIFICATION_CHANNEL_ID,
             getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             description = getString(R.string.notification_channel_description)
         }
-        manager.createNotificationChannel(channel)
+        manager.createNotificationChannel(usageChannel)
+
+        val firewallChannel = NotificationChannel(
+            VpnFirewallService.FIREWALL_CHANNEL_ID,
+            getString(R.string.firewall_notification_channel_name),
+            NotificationManager.IMPORTANCE_DEFAULT
+        ).apply {
+            description = getString(R.string.firewall_notification_channel_description)
+        }
+        manager.createNotificationChannel(firewallChannel)
     }
 
     private fun scheduleUsageSyncWork() {

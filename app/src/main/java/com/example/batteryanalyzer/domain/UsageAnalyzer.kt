@@ -52,8 +52,8 @@ class UsageAnalyzer(
             val lastUsed = resolveLastUsed(packageName, lastUsedMap, existingEntity, appInfo)
             val isDisabled = isPackageDisabled(packageName)
 
-            val disableAt = lastUsed?.let { it + DISABLE_THRESHOLD }
-            val notifyAt = lastUsed?.let { it + WARNING_THRESHOLD }
+            val disableAt = lastUsed?.let { it + usagePolicy.disableThresholdMillis }
+            val notifyAt = lastUsed?.let { it + usagePolicy.warningThresholdMillis }
 
             var scheduledDisableAt = when {
                 isDisabled -> null
@@ -65,7 +65,7 @@ class UsageAnalyzer(
             val shouldRecommendDisable = !isDisabled && disableAt != null && now >= disableAt && (notifiedAt == null || notifiedAt < disableAt)
             val resolvedStatus = when {
                 isDisabled -> AppUsageStatus.DISABLED
-                lastUsed != null && now - lastUsed <= RECENT_THRESHOLD -> AppUsageStatus.RECENT
+                lastUsed != null && now - lastUsed <= usagePolicy.recentThresholdMillis -> AppUsageStatus.RECENT
                 else -> AppUsageStatus.RARE
             }
 
@@ -199,9 +199,6 @@ class UsageAnalyzer(
 
     companion object {
         private const val TAG = "UsageAnalyzer"
-        private val RECENT_THRESHOLD = TimeUnit.DAYS.toMillis(2)
-        private val DISABLE_THRESHOLD = TimeUnit.DAYS.toMillis(4)
-        private val WARNING_THRESHOLD = TimeUnit.DAYS.toMillis(3)
         private val disabledStates = setOf(
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
             PackageManager.COMPONENT_ENABLED_STATE_DISABLED_USER,

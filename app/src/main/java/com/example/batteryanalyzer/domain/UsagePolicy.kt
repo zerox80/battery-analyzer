@@ -5,44 +5,59 @@ package com.example.batteryanalyzer.domain
  * recommendations. This keeps critical apps (for example banking or authentication) out of the
  * automation pipeline so the UI can present more trustworthy suggestions.
  */
+import java.util.concurrent.TimeUnit
+
 class UsagePolicy(
-    private val allowList: Set<String>? = null,
-    private val denyList: Set<String> = DEFAULT_DENY_LIST,
-    private val denyPrefixes: Set<String> = DEFAULT_DENY_PREFIXES
+    recentThresholdMillis: Long = DEFAULT_RECENT_THRESHOLD,
+    warningThresholdMillis: Long = DEFAULT_WARNING_THRESHOLD,
+    disableThresholdMillis: Long = DEFAULT_DISABLE_THRESHOLD
 ) {
 
+    @Volatile
+    var recentThresholdMillis: Long = recentThresholdMillis
+        private set
+
+    @Volatile
+    var warningThresholdMillis: Long = warningThresholdMillis
+        private set
+
+    @Volatile
+    var disableThresholdMillis: Long = disableThresholdMillis
+        private set
+
     /**
-     * Returns true when the package should not be tracked or targeted for automated actions.
+     * Returns true when the package should be ignored by the automation pipeline. The default
+     * implementation keeps everything enabled.
      */
-    fun shouldSkip(packageName: String): Boolean {
-        allowList?.let { explicitAllow ->
-            if (packageName in explicitAllow) return false
+    fun shouldSkip(@Suppress("UNUSED_PARAMETER") packageName: String): Boolean = false
+
+    /**
+     * Aligns internal thresholds with the configured firewall allow duration. Returns true when
+     * the values actually changed, allowing callers to decide whether they need to recompute
+     * usage classifications.
+     */
+    fun updateThresholds(allowDurationMillis: Long): Boolean {
+        val sanitized = allowDurationMillis.coerceAtLeast(MIN_THRESHOLD)
+        val newDisable = sanitized
+        val newWarning = (sanitized * 3 / 4).coerceAtLeast(MIN_THRESHOLD)
+        val newRecent = sanitized.coerceAtMost(DEFAULT_RECENT_THRESHOLD)
+
+        var changed = false
+        synchronized(this) {
+            if (newDisable != disableThresholdMillis || newWarning != warningThresholdMillis || newRecent != recentThresholdMillis) {
+                disableThresholdMillis = newDisable
+                warningThresholdMillis = newWarning
+                recentThresholdMillis = newRecent
+                changed = true
+            }
         }
-        if (packageName in denyList) return true
-        if (denyPrefixes.any { prefix -> packageName.startsWith(prefix) }) return true
-        return false
+        return changed
     }
 
     companion object {
-        private val DEFAULT_DENY_LIST = setOf(
-            "com.google.android.apps.authenticator2",
-            "proton.android.authenticator",
-            "com.starfinanz.mobile.android.pushtan",
-            "com.starfinanz.mobile.android.sparkasseplus",
-            "com.google.android.apps.walletnfcrel",
-            "com.google.android.apps.wallet",
-            "com.google.android.apps.security.securityhub",
-            "com.google.android.apps.work.clouddpc"
-        )
-
-        private val DEFAULT_DENY_PREFIXES = setOf(
-            "com.starfinanz.",
-            "com.bank",
-            "ch.threema",
-            "de.starface",
-            "org.telegram",
-            "com.google.android.safety",
-            "cz.mobilesoft.appblock"
-        )
+        private val DEFAULT_RECENT_THRESHOLD = TimeUnit.DAYS.toMillis(2)
+        private val DEFAULT_WARNING_THRESHOLD = TimeUnit.DAYS.toMillis(3)
+        private val DEFAULT_DISABLE_THRESHOLD = TimeUnit.DAYS.toMillis(4)
+        private val MIN_THRESHOLD = TimeUnit.MINUTES.toMillis(1)
     }
 }

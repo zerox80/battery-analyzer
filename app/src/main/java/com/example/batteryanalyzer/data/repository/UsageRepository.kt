@@ -24,7 +24,7 @@ class UsageRepository(private val trackedAppDao: TrackedAppDao) {
                 trackedAppDao.upsertAll(evaluation.updates)
             }
             if (evaluation.packagesToRemove.isNotEmpty()) {
-                evaluation.packagesToRemove.forEach { trackedAppDao.delete(it) }
+                trackedAppDao.deleteAll(evaluation.packagesToRemove)
             }
         }
     }

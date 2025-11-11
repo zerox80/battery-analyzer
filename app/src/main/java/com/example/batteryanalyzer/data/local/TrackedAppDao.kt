@@ -39,4 +39,7 @@ interface TrackedAppDao {
 
     @Query("DELETE FROM tracked_apps WHERE package_name = :packageName")
     suspend fun delete(packageName: String)
+
+    @Query("DELETE FROM tracked_apps WHERE package_name IN (:packageNames)")
+    suspend fun deleteAll(packageNames: List<String>)
 }

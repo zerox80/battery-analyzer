@@ -37,4 +37,60 @@
     <string name="status_recent">Kürzlich verwendet</string>
     <string name="status_rare">Selten verwendet</string>
     <string name="status_disabled">Deaktiviert</string>
+    <string name="firewall_card_title">Netzwerk-Firewall</string>
+    <string name="firewall_card_description">Blockiert automatisch die Netzwerkverbindung von Apps, die Sie seit 4 Tagen nicht mehr geöffnet haben. Sie können die Firewall jederzeit pausieren oder neu starten.</string>
+    <string name="firewall_switch_label">Firewall aktiv</string>
+    <string name="firewall_switch_label_disabled">Firewall inaktiv</string>
+    <string name="firewall_countdown_label">Automatische Blockierung in: %1$s</string>
+    <string name="firewall_blocking_now">Selten genutzte Apps sind aktuell ohne Netzwerk</string>
+    <string name="firewall_allowing_now">Alle Apps sind vorübergehend freigegeben</string>
+    <string name="firewall_vpn_session_name">Battery Analyzer Firewall</string>
+    <string name="firewall_notification_channel_name">Firewall-Benachrichtigungen</string>
+    <string name="firewall_notification_channel_description">Status der integrierten Firewall und Schnellaktionen.</string>
+    <string name="firewall_notification_title_blocking">Firewall aktiv – selten genutzte Apps blockiert</string>
+    <string name="firewall_notification_text_blocking">Apps, die seit mindestens 4 Tagen ungenutzt sind, haben gerade keine Netzwerkverbindung. Öffnen Sie die App oder pausieren Sie die Firewall, um sie wieder zuzulassen.</string>
+    <string name="firewall_notification_action_disable">Firewall deaktivieren</string>
+    <string name="firewall_notification_title_allowing">Firewall aktiv – Verbindungen erlaubt</string>
+    <string name="firewall_notification_text_allowing">Alle Apps dürfen vorübergehend online bleiben. Nach Ablauf der 4 Tage werden ungenutzte Apps automatisch wieder gesperrt.</string>
+    <string name="firewall_allow_button">4 Tage erlauben</string>
+    <string name="firewall_block_now_button">Jetzt blockieren</string>
+    <string name="firewall_allow_button_dynamic">Für %1$s erlauben</string>
+    <string name="firewall_allow_duration_hint">Nach %1$s werden selten genutzte Apps automatisch blockiert.</string>
+
+    <string name="navigation_open">Navigation öffnen</string>
+    <string name="nav_home">Dashboard</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="nav_metrics">Netzwerk-Metriken</string>
+
+    <string name="settings_title">Firewall-Einstellungen</string>
+    <string name="settings_description">Legen Sie fest, wie lange die Firewall Verbindungen zulässt, bevor selten genutzte Apps wieder blockiert werden.</string>
+    <string name="settings_duration_header">Erlaubnisdauer</string>
+    <string name="settings_current_duration">Aktuell: %1$s</string>
+    <string name="settings_duration_subtitle">Tippen Sie auf eine Option, um sie zu übernehmen.</string>
+
+    <string name="metrics_title">Netzwerk-Metriken</string>
+    <string name="metrics_description">Aktivieren Sie die Metrik-Erfassung, um den tatsächlichen Datenverkehr seltener Apps in den letzten 10 Minuten anzuzeigen. Ideal zum Debuggen von Firewall-Regeln.</string>
+    <string name="metrics_toggle_label">Metriken aktiv</string>
+    <string name="metrics_last_sample">Letzte Aktualisierung: %1$s</string>
+    <string name="metrics_no_sample">Noch keine Stichprobe erfasst.</string>
+    <string name="metrics_disabled_hint">Aktivieren Sie die Metriken, um Datenverkehrwerte zu sammeln.</string>
+    <string name="metrics_empty_list">Keine selten genutzten Apps gefunden.</string>
+    <string name="metrics_traffic_title">Datenverkehr (letzte 10 Minuten)</string>
+
+    <plurals name="duration_days">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
+    <plurals name="duration_seconds">
+        <item quantity="one">%d Sekunde</item>
+        <item quantity="other">%d Sekunden</item>
+    </plurals>
 </resources>

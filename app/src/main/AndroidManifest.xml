@@ -5,6 +5,9 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
 
     <application
         android:name=".BatteryAnalyzerApp"
@@ -17,6 +20,18 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BatteryAnalyzer"
         android:usesCleartextTraffic="false">
+
+        <service
+            android:name=".firewall.VpnFirewallService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:permission="android.permission.BIND_VPN_SERVICE" />
+
+        <receiver
+            android:name=".firewall.FirewallNotificationReceiver"
+            android:enabled="true"
+            android:exported="false" />
 
         <activity
             android:name=".MainActivity"

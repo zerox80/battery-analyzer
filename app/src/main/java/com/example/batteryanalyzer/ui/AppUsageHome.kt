@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -23,29 +24,36 @@ import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Inbox
 import androidx.compose.material.icons.outlined.Info
+import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.PrivacyTip
+import android.text.format.DateUtils
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -55,10 +63,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import com.example.batteryanalyzer.R
 import com.example.batteryanalyzer.model.AppUsageInfo
 import com.example.batteryanalyzer.ui.components.AppUsageCard
+import com.example.batteryanalyzer.ui.rememberDurationLabel
 import com.example.batteryanalyzer.ui.state.AppHomeState
+import com.example.batteryanalyzer.ui.state.FirewallUiState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -67,7 +80,12 @@ fun AppUsageHome(
     onRequestUsagePermission: () -> Unit,
     onRefresh: () -> Unit,
     onRestoreApp: (String) -> Unit,
-    onOpenAppInfo: (String) -> Unit
+    onOpenAppInfo: (String) -> Unit,
+    onEnableFirewall: () -> Unit,
+    onDisableFirewall: () -> Unit,
+    onAllowForDuration: () -> Unit,
+    onBlockNow: () -> Unit,
+    onOpenNavigation: () -> Unit
 ) {
     val tabs = listOf(
         stringResource(id = R.string.tab_recent),
@@ -79,10 +97,18 @@ fun AppUsageHome(
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
 
     Scaffold(
-        modifier = Modifier,
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            CenterAlignedTopAppBar(
+            androidx.compose.material3.TopAppBar(
                 title = { Text(text = stringResource(id = R.string.dashboard_title)) },
+                navigationIcon = {
+                    IconButton(onClick = onOpenNavigation) {
+                        Icon(
+                            imageVector = Icons.Outlined.Menu,
+                            contentDescription = stringResource(id = R.string.navigation_open)
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onRefresh) {
                         Icon(
@@ -103,109 +129,300 @@ fun AppUsageHome(
                 onRequestUsagePermission = onRequestUsagePermission
             )
         } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentPadding = PaddingValues(bottom = 24.dp)
             ) {
-                SummaryHero(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    permissionGranted = state.usagePermissionGranted
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                UsageStatsRow(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .fillMaxWidth(),
-                    recentCount = state.recentApps.size,
-                    rareCount = state.rareApps.size,
-                    disabledCount = state.disabledApps.size
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                ElevatedCard(
-                    modifier = Modifier
-                        .padding(horizontal = 16.dp)
-                        .weight(1f),
-                    shape = MaterialTheme.shapes.extraLarge,
-                    colors = CardDefaults.elevatedCardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
+                item {
+                    SummaryHero(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        permissionGranted = state.usagePermissionGranted
                     )
-                ) {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        androidx.compose.material3.TabRow(
-                            selectedTabIndex = selectedTabIndex.intValue,
-                            indicator = { tabPositions ->
-                                TabRowDefaults.Indicator(
-                                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex.intValue]),
-                                    color = MaterialTheme.colorScheme.primary
+                }
+
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+
+                item {
+                    FirewallCard(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        state = state.firewallState,
+                        onEnable = onEnableFirewall,
+                        onDisable = onDisableFirewall,
+                        onAllowForDuration = onAllowForDuration,
+                        onBlockNow = onBlockNow,
+                        allowDurationMillis = state.allowDurationMillis
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+
+                item {
+                    UsageStatsRow(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        recentCount = state.recentApps.size,
+                        rareCount = state.rareApps.size,
+                        disabledCount = state.disabledApps.size
+                    )
+                }
+
+                item { Spacer(modifier = Modifier.height(20.dp)) }
+
+                item {
+                    AppListContainer(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp)
+                            .fillMaxWidth(),
+                        tabs = tabs,
+                        tabCounts = tabCounts,
+                        state = state,
+                        isLoading = state.isLoading,
+                        selectedTabIndex = selectedTabIndex.intValue,
+                        onTabSelected = { selectedTabIndex.intValue = it },
+                        onRestoreApp = onRestoreApp,
+                        onOpenAppInfo = onOpenAppInfo
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AppListContainer(
+    modifier: Modifier = Modifier,
+    tabs: List<String>,
+    tabCounts: List<Int>,
+    state: AppHomeState,
+    isLoading: Boolean,
+    selectedTabIndex: Int,
+    onTabSelected: (Int) -> Unit,
+    onRestoreApp: (String) -> Unit,
+    onOpenAppInfo: (String) -> Unit
+) {
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            androidx.compose.material3.TabRow(
+                selectedTabIndex = selectedTabIndex,
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { onTabSelected(index) },
+                        text = {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text(
+                                    text = title,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = if (selectedTabIndex == index) FontWeight.SemiBold else FontWeight.Normal
                                 )
-                            }
-                        ) {
-                            tabs.forEachIndexed { index, title ->
-                                Tab(
-                                    selected = selectedTabIndex.intValue == index,
-                                    onClick = {
-                                        selectedTabIndex.intValue = index
-                                    },
-                                    text = {
-                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                            Text(
-                                                text = title,
-                                                style = MaterialTheme.typography.labelLarge,
-                                                fontWeight = if (selectedTabIndex.intValue == index) FontWeight.SemiBold else FontWeight.Normal
-                                            )
-                                            Text(
-                                                text = tabCounts[index].toString(),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                    }
+                                Text(
+                                    text = tabCounts[index].toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }
+                    )
+                }
+            }
 
-                        Divider()
+            HorizontalDivider()
 
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            if (state.isLoading) {
-                                LoadingState()
-                            } else {
-                                when (selectedTabIndex.intValue) {
-                                    0 -> AppList(
-                                        apps = state.recentApps,
-                                        emptyText = R.string.empty_state_recent,
-                                        onRestoreApp = onRestoreApp,
-                                        onOpenAppInfo = onOpenAppInfo
-                                    )
+            val listModifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 200.dp, max = 520.dp)
 
-                                    1 -> AppList(
-                                        apps = state.rareApps,
-                                        emptyText = R.string.empty_state_rare,
-                                        onRestoreApp = onRestoreApp,
-                                        onOpenAppInfo = onOpenAppInfo
-                                    )
+            Box(modifier = Modifier.fillMaxWidth()) {
+                if (isLoading) {
+                    LoadingState(modifier = Modifier.fillMaxWidth())
+                } else {
+                    when (selectedTabIndex) {
+                        0 -> AppList(
+                            modifier = listModifier,
+                            apps = state.recentApps,
+                            emptyText = R.string.empty_state_recent,
+                            onRestoreApp = onRestoreApp,
+                            onOpenAppInfo = onOpenAppInfo
+                        )
 
-                                    2 -> AppList(
-                                        apps = state.disabledApps,
-                                        emptyText = R.string.empty_state_disabled,
-                                        onRestoreApp = onRestoreApp,
-                                        onOpenAppInfo = onOpenAppInfo,
-                                        showRestore = true
-                                    )
-                                }
-                            }
+                        1 -> AppList(
+                            modifier = listModifier,
+                            apps = state.rareApps,
+                            emptyText = R.string.empty_state_rare,
+                            onRestoreApp = onRestoreApp,
+                            onOpenAppInfo = onOpenAppInfo
+                        )
+
+                        2 -> AppList(
+                            modifier = listModifier,
+                            apps = state.disabledApps,
+                            emptyText = R.string.empty_state_disabled,
+                            onRestoreApp = onRestoreApp,
+                            onOpenAppInfo = onOpenAppInfo,
+                            showRestore = true
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun FirewallCard(
+    modifier: Modifier = Modifier,
+    state: FirewallUiState,
+    onEnable: () -> Unit,
+    onDisable: () -> Unit,
+    onAllowForDuration: () -> Unit,
+    onBlockNow: () -> Unit,
+    allowDurationMillis: Long
+) {
+    val isEnabled = state.isEnabled
+    val isBlocking = state.isBlocking
+
+    var countdownText by remember(state.reactivateAt, state.isBlocking, state.isEnabled) {
+        mutableStateOf<String?>(null)
+    }
+
+    val allowDurationLabel = rememberDurationLabel(allowDurationMillis)
+
+    LaunchedEffect(state.reactivateAt, state.isBlocking, state.isEnabled) {
+        if (state.isEnabled && !state.isBlocking && state.reactivateAt != null) {
+            while (isActive) {
+                val now = System.currentTimeMillis()
+                val remaining = state.reactivateAt - now
+                if (remaining <= 0) {
+                    countdownText = null
+                    break
+                }
+                countdownText = DateUtils.getRelativeTimeSpanString(
+                    state.reactivateAt,
+                    now,
+                    DateUtils.MINUTE_IN_MILLIS
+                ).toString()
+                val delayMillis = remaining.coerceAtMost(DateUtils.MINUTE_IN_MILLIS)
+                delay(delayMillis)
+            }
+        } else {
+            countdownText = null
+        }
+    }
+
+    ElevatedCard(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(id = R.string.firewall_card_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        text = stringResource(id = R.string.firewall_card_description),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Switch(
+                        checked = isEnabled,
+                        onCheckedChange = { checked ->
+                            if (checked) onEnable() else onDisable()
+                        }
+                    )
+                    Text(
+                        text = if (isEnabled) {
+                            stringResource(id = R.string.firewall_switch_label)
+                        } else {
+                            stringResource(id = R.string.firewall_switch_label_disabled)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            val statusText = when {
+                isEnabled && isBlocking -> stringResource(id = R.string.firewall_blocking_now)
+                isEnabled && !isBlocking -> stringResource(id = R.string.firewall_allowing_now)
+                else -> null
+            }
+
+            statusText?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            if (isEnabled && !isBlocking && countdownText != null) {
+                Text(
+                    text = stringResource(id = R.string.firewall_countdown_label, countdownText!!),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (isEnabled) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (isBlocking) {
+                        Button(
+                            onClick = onAllowForDuration,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = stringResource(id = R.string.firewall_allow_button_dynamic, allowDurationLabel))
+                        }
+                    } else {
+                        Button(
+                            onClick = onBlockNow,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(text = stringResource(id = R.string.firewall_block_now_button))
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
+                if (isBlocking) {
+                    Text(
+                        text = stringResource(id = R.string.firewall_allow_duration_hint, allowDurationLabel),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
     }
@@ -364,6 +581,7 @@ private fun RowScope.UsageStatCard(
 
 @Composable
 private fun AppList(
+    modifier: Modifier = Modifier,
     apps: List<AppUsageInfo>,
     emptyText: Int,
     onRestoreApp: (String) -> Unit,
@@ -371,11 +589,16 @@ private fun AppList(
     showRestore: Boolean = false
 ) {
     if (apps.isEmpty()) {
-        EmptyState(stringResource(id = emptyText))
+        Box(
+            modifier = modifier,
+            contentAlignment = Alignment.Center
+        ) {
+            EmptyState(text = stringResource(id = emptyText))
+        }
     } else {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            modifier = modifier,
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(apps) { appInfo ->
@@ -391,11 +614,12 @@ private fun AppList(
 }
 
 @Composable
-private fun LoadingState() {
+private fun LoadingState(modifier: Modifier = Modifier) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
+        modifier = modifier
+            .padding(24.dp)
+            .heightIn(min = 200.dp)
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -409,11 +633,12 @@ private fun LoadingState() {
 }
 
 @Composable
-private fun EmptyState(text: String) {
+private fun EmptyState(modifier: Modifier = Modifier, text: String) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(32.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(32.dp)
+            .heightIn(min = 200.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
