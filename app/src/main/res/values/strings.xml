@@ -38,7 +38,7 @@
     <string name="status_rare">Selten verwendet</string>
     <string name="status_disabled">Deaktiviert</string>
     <string name="firewall_card_title">Netzwerk-Firewall</string>
-    <string name="firewall_card_description">Blockiert automatisch die Netzwerkverbindung von Apps, die Sie seit 4 Tagen nicht mehr geöffnet haben. Sie können die Firewall jederzeit pausieren oder neu starten.</string>
+    <string name="firewall_card_description">Blockiert automatisch die Netzwerkverbindung von Apps, die Sie seit %1$s nicht mehr geöffnet haben. Sie können die Firewall jederzeit pausieren oder neu starten.</string>
     <string name="firewall_switch_label">Firewall aktiv</string>
     <string name="firewall_switch_label_disabled">Firewall inaktiv</string>
     <string name="firewall_countdown_label">Automatische Blockierung in: %1$s</string>
@@ -53,10 +53,10 @@
     <string name="firewall_notification_channel_name">Firewall-Benachrichtigungen</string>
     <string name="firewall_notification_channel_description">Status der integrierten Firewall und Schnellaktionen.</string>
     <string name="firewall_notification_title_blocking">Firewall aktiv – selten genutzte Apps blockiert</string>
-    <string name="firewall_notification_text_blocking">Apps, die seit mindestens 4 Tagen ungenutzt sind, haben gerade keine Netzwerkverbindung. Öffnen Sie die App oder pausieren Sie die Firewall, um sie wieder zuzulassen.</string>
+    <string name="firewall_notification_text_blocking">Apps, die seit mindestens %1$s ungenutzt sind, haben gerade keine Netzwerkverbindung. Öffnen Sie die App oder pausieren Sie die Firewall, um sie wieder zuzulassen.</string>
     <string name="firewall_notification_action_disable">Firewall deaktivieren</string>
     <string name="firewall_notification_title_allowing">Firewall aktiv – Verbindungen erlaubt</string>
-    <string name="firewall_notification_text_allowing">Alle Apps dürfen vorübergehend online bleiben. Nach Ablauf der 4 Tage werden ungenutzte Apps automatisch wieder gesperrt.</string>
+    <string name="firewall_notification_text_allowing">Alle Apps dürfen vorübergehend online bleiben. Nach Ablauf der %1$s werden ungenutzte Apps automatisch wieder gesperrt.</string>
     <string name="firewall_allow_button">4 Tage erlauben</string>
     <string name="firewall_block_now_button">Jetzt blockieren</string>
     <string name="firewall_allow_button_dynamic">Für %1$s erlauben</string>

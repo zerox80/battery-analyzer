@@ -1,4 +1,4 @@
-﻿package com.privacyguard.batteryanalyzer.ui
+package com.privacyguard.batteryanalyzer.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -367,7 +367,7 @@ private fun FirewallCard(
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(
-                        text = stringResource(id = R.string.firewall_card_description),
+                        text = stringResource(id = R.string.firewall_card_description, allowDurationLabel),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp)
