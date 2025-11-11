@@ -1,40 +1,104 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Battery Analyzer</string>
+    <string name="app_name">PrivacyGuard</string>
     <string name="permission_usage_access_title">Nutzungszugriff erforderlich</string>
-    <string name="permission_usage_access_message">Um App-Nutzungsstatistiken zu erfassen, muss der Nutzungszugriff gewährt werden.</string>
-    <string name="permission_usage_access_action">Zugriff gewähren</string>
-    <string name="tab_recent">Kürzlich verwendet</string>
+    <string name="permission_usage_access_message">Um App-Nutzungsstatistiken zu erfassen, muss der Nutzungszugriff gewÃ¤hrt werden.</string>
+    <string name="permission_usage_access_action">Zugriff gewÃ¤hren</string>
+    <string name="tab_recent">KÃ¼rzlich verwendet</string>
     <string name="tab_rare">Selten verwendet</string>
     <string name="tab_disabled">Deaktivierte Apps</string>
     <string name="action_restore_app">App wieder aktivieren</string>
-    <string name="action_open_app_info">App-Info öffnen</string>
-    <string name="usage_permission_denied">Berechtigung abgelehnt. Öffnen Sie die Einstellungen, um den Zugriff zu erlauben.</string>
+    <string name="action_open_app_info">App-Info Ã¶ffnen</string>
+    <string name="usage_permission_denied">Berechtigung abgelehnt. Ã–ffnen Sie die Einstellungen, um den Zugriff zu erlauben.</string>
     <string name="notification_disable_title">App wird deaktiviert</string>
-    <string name="notification_disable_text">%1$s wurde seit 4 Tagen nicht verwendet. Öffnen Sie die App-Info, um selbst zu deaktivieren oder zu deinstallieren.</string>
-    <string name="notification_disable_recommendation_title">App längere Zeit ungenutzt</string>
-    <string name="notification_disable_recommendation_text">%1$s wurde seit mehreren Tagen nicht genutzt. Prüfen Sie die App-Info, falls Sie Speicher freigeben möchten.</string>
+    <string name="notification_disable_text">%1$s wurde seit 4 Tagen nicht verwendet. Ã–ffnen Sie die App-Info, um selbst zu deaktivieren oder zu deinstallieren.</string>
+    <string name="notification_disable_recommendation_title">App lÃ¤ngere Zeit ungenutzt</string>
+    <string name="notification_disable_recommendation_text">%1$s wurde seit mehreren Tagen nicht genutzt. PrÃ¼fen Sie die App-Info, falls Sie Speicher freigeben mÃ¶chten.</string>
     <string name="notification_channel_name">App-Nutzungsstatus</string>
     <string name="notification_channel_description">Benachrichtigungen zur automatischen Deaktivierung und Wiederherstellung von Apps.</string>
-    <string name="settings_usage_access">Nutzungszugriff öffnen</string>
-    <string name="empty_state_recent">Keine kürzlich verwendeten Apps.</string>
-    <string name="empty_state_rare">Alle Apps wurden kürzlich verwendet.</string>
+    <string name="settings_usage_access">Nutzungszugriff Ã¶ffnen</string>
+    <string name="empty_state_recent">Keine kÃ¼rzlich verwendeten Apps.</string>
+    <string name="empty_state_rare">Alle Apps wurden kÃ¼rzlich verwendet.</string>
     <string name="empty_state_disabled">Keine Apps wurden deaktiviert.</string>
-    <string name="usage_stats_loading">Nutzungsdaten werden geladen…</string>
+    <string name="usage_stats_loading">Nutzungsdaten werden geladenâ€¦</string>
     <string name="last_used_format">Zuletzt verwendet: %1$s</string>
-    <string name="last_used_never">Noch nie geöffnet</string>
+    <string name="last_used_never">Noch nie geÃ¶ffnet</string>
     <string name="scheduled_disable_format">Geplante Deaktivierung: %1$s</string>
-    <string name="permission_usage_access_subtitle">Ohne Nutzungszugriff kann die App keine Analysen durchführen.</string>
+    <string name="permission_usage_access_subtitle">Ohne Nutzungszugriff kann die App keine Analysen durchfÃ¼hren.</string>
     <string name="action_refresh">Aktualisieren</string>
-    <string name="dashboard_title">Nutzungsübersicht</string>
+    <string name="dashboard_title">NutzungsÃ¼bersicht</string>
     <string name="summary_headline">Behalten Sie Ihre Apps im Blick</string>
     <string name="summary_subheadline">Automatische Erinnerungen und Deaktivierungen basierend auf Ihrem Nutzungsverhalten.</string>
     <string name="permission_status_granted">Nutzungszugriff aktiv</string>
     <string name="permission_status_missing">Nutzungszugriff erforderlich</string>
-    <string name="stat_recent">Kürzlich</string>
+    <string name="stat_recent">KÃ¼rzlich</string>
     <string name="stat_rare">Selten</string>
     <string name="stat_disabled">Deaktiviert</string>
-    <string name="status_recent">Kürzlich verwendet</string>
+    <string name="status_recent">KÃ¼rzlich verwendet</string>
     <string name="status_rare">Selten verwendet</string>
     <string name="status_disabled">Deaktiviert</string>
+    <string name="firewall_card_title">Netzwerk-Firewall</string>
+    <string name="firewall_card_description">Blockiert automatisch die Netzwerkverbindung von Apps, die Sie seit 4 Tagen nicht mehr geÃ¶ffnet haben. Sie kÃ¶nnen die Firewall jederzeit pausieren oder neu starten.</string>
+    <string name="firewall_switch_label">Firewall aktiv</string>
+    <string name="firewall_switch_label_disabled">Firewall inaktiv</string>
+    <string name="firewall_countdown_label">Automatische Blockierung in: %1$s</string>
+    <string name="firewall_blocking_now">Selten genutzte Apps sind aktuell ohne Netzwerk</string>
+    <string name="firewall_allowing_now">Alle Apps sind vorÃ¼bergehend freigegeben</string>
+    <string name="firewall_manual_mode_hint">Manuelle Sperrsteuerung aktiv: Apps bleiben blockiert, bis Sie sie in den Einstellungen freigeben.</string>
+    <string name="firewall_manual_section_title">Manuell gesperrte Apps</string>
+    <string name="firewall_manual_section_description">Diese Apps bleiben blockiert, bis Sie sie hier freigeben. Tippen Sie auf &quot;Freigeben&quot;, um den Netzwerkzugang nur fÃ¼r diese App wiederherzustellen.</string>
+    <string name="firewall_manual_section_empty">Aktuell sind keine Apps manuell blockiert.</string>
+    <string name="firewall_manual_unblock_button">Freigeben</string>
+    <string name="firewall_vpn_session_name">PrivacyGuard Firewall</string>
+    <string name="firewall_notification_channel_name">Firewall-Benachrichtigungen</string>
+    <string name="firewall_notification_channel_description">Status der integrierten Firewall und Schnellaktionen.</string>
+    <string name="firewall_notification_title_blocking">Firewall aktiv â€“ selten genutzte Apps blockiert</string>
+    <string name="firewall_notification_text_blocking">Apps, die seit mindestens 4 Tagen ungenutzt sind, haben gerade keine Netzwerkverbindung. Ã–ffnen Sie die App oder pausieren Sie die Firewall, um sie wieder zuzulassen.</string>
+    <string name="firewall_notification_action_disable">Firewall deaktivieren</string>
+    <string name="firewall_notification_title_allowing">Firewall aktiv â€“ Verbindungen erlaubt</string>
+    <string name="firewall_notification_text_allowing">Alle Apps dÃ¼rfen vorÃ¼bergehend online bleiben. Nach Ablauf der 4 Tage werden ungenutzte Apps automatisch wieder gesperrt.</string>
+    <string name="firewall_allow_button">4 Tage erlauben</string>
+    <string name="firewall_block_now_button">Jetzt blockieren</string>
+    <string name="firewall_allow_button_dynamic">FÃ¼r %1$s erlauben</string>
+    <string name="firewall_allow_duration_hint">Nach %1$s werden selten genutzte Apps automatisch blockiert.</string>
+
+    <string name="navigation_open">Navigation Ã¶ffnen</string>
+    <string name="nav_home">Dashboard</string>
+    <string name="nav_settings">Einstellungen</string>
+    <string name="nav_metrics">Netzwerk-Metriken</string>
+
+    <string name="settings_title">Firewall-Einstellungen</string>
+    <string name="settings_description">Legen Sie fest, wie lange die Firewall Verbindungen zulÃ¤sst, bevor selten genutzte Apps wieder blockiert werden.</string>
+    <string name="settings_duration_header">Erlaubnisdauer</string>
+    <string name="settings_current_duration">Aktuell: %1$s</string>
+    <string name="settings_duration_subtitle">Tippen Sie auf eine Option, um sie zu Ã¼bernehmen.</string>
+    <string name="settings_manual_firewall_title">Manuelle Sperrsteuerung</string>
+    <string name="settings_manual_firewall_description">Wenn aktiviert, bleiben blockierte Apps gesperrt, bis Sie sie hier manuell freigeben. Das Ã–ffnen einer App hebt die Sperre nicht automatisch auf.</string>
+    <string name="settings_manual_firewall_toggle">Manuelle Freigabe erforderlich</string>
+
+    <string name="metrics_title">Netzwerk-Metriken</string>
+    <string name="metrics_description">Aktivieren Sie die Metrik-Erfassung, um den tatsÃ¤chlichen Datenverkehr seltener Apps in den letzten 10 Minuten anzuzeigen. Ideal zum Debuggen von Firewall-Regeln.</string>
+    <string name="metrics_toggle_label">Metriken aktiv</string>
+    <string name="metrics_last_sample">Letzte Aktualisierung: %1$s</string>
+    <string name="metrics_no_sample">Noch keine Stichprobe erfasst.</string>
+    <string name="metrics_disabled_hint">Aktivieren Sie die Metriken, um Datenverkehrwerte zu sammeln.</string>
+    <string name="metrics_empty_list">Keine selten genutzten Apps gefunden.</string>
+    <string name="metrics_traffic_title">Datenverkehr (letzte 10 Minuten)</string>
+
+    <plurals name="duration_days">
+        <item quantity="one">%d Tag</item>
+        <item quantity="other">%d Tage</item>
+    </plurals>
+    <plurals name="duration_hours">
+        <item quantity="one">%d Stunde</item>
+        <item quantity="other">%d Stunden</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d Minute</item>
+        <item quantity="other">%d Minuten</item>
+    </plurals>
+    <plurals name="duration_seconds">
+        <item quantity="one">%d Sekunde</item>
+        <item quantity="other">%d Sekunden</item>
+    </plurals>
 </resources>

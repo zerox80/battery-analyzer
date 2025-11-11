@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "BatteryAnalyzer"
+rootProject.name = "PrivacyGuard"
 include(":app")
