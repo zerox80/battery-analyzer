@@ -73,6 +73,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onManualFirewallUnblockChange = { enabled ->
                             lifecycleScope.launch { viewModel.setManualFirewallUnblock(enabled) }
+                        },
+                        onManualFirewallUnblock = { packageName ->
+                            lifecycleScope.launch { viewModel.manualUnblockPackage(packageName) }
                         }
                     )
                 }

@@ -47,14 +47,17 @@ class FirewallController(
 
     suspend fun allowForDuration(allowDurationMillis: Long, blockPackages: Set<String>? = null) {
         val packages = blockPackages ?: preferences.preferencesFlow.first().blockedPackages
-        val reactivateAt = System.currentTimeMillis() + allowDurationMillis
+        if (packages.isEmpty()) {
+            setBlocking(false, System.currentTimeMillis() + allowDurationMillis, packages)
+            return
+        }
         preferences.setState(
             isEnabled = true,
             isBlocking = false,
-            reactivateAt = reactivateAt,
+            reactivateAt = System.currentTimeMillis() + allowDurationMillis,
             blockedPackages = packages
         )
-        scheduleAutoBlock(reactivateAt)
+        scheduleAutoBlock(System.currentTimeMillis() + allowDurationMillis)
         startService(isBlocking = false, blockList = packages)
     }
 

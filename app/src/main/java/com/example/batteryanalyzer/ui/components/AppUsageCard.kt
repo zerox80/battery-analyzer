@@ -43,7 +43,10 @@ fun AppUsageCard(
     app: AppUsageInfo,
     onOpenAppInfo: () -> Unit,
     showRestore: Boolean,
-    onRestore: () -> Unit
+    onRestore: () -> Unit,
+    manualFirewallEnabled: Boolean,
+    isManuallyBlocked: Boolean,
+    onManualUnblock: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -91,6 +94,13 @@ fun AppUsageCard(
             ) {
                 OutlinedButton(onClick = onOpenAppInfo) {
                     Text(text = stringResource(id = R.string.action_open_app_info))
+                }
+
+                if (manualFirewallEnabled && isManuallyBlocked) {
+                    Spacer(modifier = Modifier.size(12.dp))
+                    OutlinedButton(onClick = onManualUnblock) {
+                        Text(text = stringResource(id = R.string.firewall_manual_unblock_button))
+                    }
                 }
 
                 if (showRestore) {

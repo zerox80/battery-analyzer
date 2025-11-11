@@ -1,15 +1,9 @@
 package com.example.batteryanalyzer
 
-import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.NetworkStats
-import android.net.NetworkStatsManager
-import android.net.NetworkTemplate
 import android.net.TrafficStats
 import android.os.Build
-import android.telephony.SubscriptionManager
-import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -55,10 +49,9 @@ class MainViewModel(
     private val trafficSnapshots = mutableMapOf<String, Long>()
     private val trafficHistory = mutableMapOf<String, ArrayDeque<Pair<Long, Long>>>()
     private var metricsJob: Job? = null
-    private val networkStatsManager: NetworkStatsManager? =
-        appContext.getSystemService(NetworkStatsManager::class.java)
     private val trafficWindowMillisRef = AtomicLong(TimeUnit.MINUTES.toMillis(10))
     private val trafficSampleIntervalMillis = TimeUnit.SECONDS.toMillis(30)
+    private val manualUnblockCooldown = mutableMapOf<String, Long>()
 
     private var subscriptionsStarted = false
     private val blockThresholdMillis = TimeUnit.DAYS.toMillis(4)
@@ -84,8 +77,13 @@ class MainViewModel(
 // aktiviert die Firewall 
     fun enableFirewall() {
         viewModelScope.launch {
-            val blockList = computeBlockList()
-            firewallController.enableFirewall(blockList, _uiState.value.allowDurationMillis)
+            val state = _uiState.value
+            val blockList = computeBlockList(state)
+            if (state.manualFirewallUnblock) {
+                firewallController.blockNow(blockList)
+            } else {
+                firewallController.enableFirewall(blockList, state.allowDurationMillis)
+            }
         }
     }
 
@@ -104,8 +102,13 @@ class MainViewModel(
 
     fun allowForConfiguredDuration() {
         viewModelScope.launch {
+            val state = _uiState.value
+            if (state.manualFirewallUnblock) {
+                Log.i(TAG, "Manual firewall mode active; skipping allowForConfiguredDuration")
+                return@launch
+            }
             val blockList = computeBlockList()
-            firewallController.allowForDuration(_uiState.value.allowDurationMillis, blockList)
+            firewallController.allowForDuration(state.allowDurationMillis, blockList)
         }
     }
 
@@ -127,6 +130,22 @@ class MainViewModel(
     fun setManualFirewallUnblock(enabled: Boolean) {
         viewModelScope.launch {
             settingsPreferences.setManualFirewallUnblock(enabled)
+            if (enabled) {
+                val state = _uiState.value.copy(manualFirewallUnblock = true)
+                val blockList = computeBlockList(state)
+                firewallController.blockNow(blockList)
+            }
+        }
+    }
+
+    fun manualUnblockPackage(packageName: String) {
+        viewModelScope.launch {
+            manualUnblockCooldown[packageName] = System.currentTimeMillis() + blockThresholdMillis
+            val current = _uiState.value.firewallBlockedPackages.toMutableSet()
+            if (current.remove(packageName)) {
+                firewallController.updateBlockedPackages(current)
+            }
+            syncFirewallBlockList()
         }
     }
 
@@ -219,15 +238,28 @@ class MainViewModel(
             .map { it.packageName }
 
         val disabledPackages = state.disabledApps.map { it.packageName }
-        val retainedPackages = if (state.manualFirewallUnblock) {
-            state.firewallBlockedPackages
-        } else {
-            emptySet()
+
+        val iterator = manualUnblockCooldown.entries.iterator()
+        while (iterator.hasNext()) {
+            if (iterator.next().value <= now) {
+                iterator.remove()
+            }
         }
 
-        return (rarePackages + disabledPackages + retainedPackages).toSet()
-            .filterNot { it == appContext.packageName }
-            .toSet()
+        return if (state.manualFirewallUnblock) {
+            val manualSet = state.firewallBlockedPackages.toMutableSet()
+            val additions = (rarePackages + disabledPackages).filter { pkg ->
+                val cooldownExpiry = manualUnblockCooldown[pkg]
+                (cooldownExpiry == null || cooldownExpiry <= now)
+            }
+            manualSet += additions
+            manualSet.remove(appContext.packageName)
+            manualSet
+        } else {
+            (rarePackages + disabledPackages).toSet()
+                .filterNot { it == appContext.packageName }
+                .toSet()
+        }
     }
 
     private suspend fun syncFirewallBlockList() {
@@ -313,7 +345,6 @@ class MainViewModel(
         val trackedPackages = trackedApps.map { it.packageName }
         val now = System.currentTimeMillis()
         val windowMillis = trafficWindowMillisRef.get()
-        val windowStart = now - windowMillis
 
         if (trackedPackages.isEmpty()) {
             trafficHistory.clear()
@@ -329,14 +360,6 @@ class MainViewModel(
 
         for (packageName in trackedPackages) {
             val uid = resolveUid(packageName) ?: continue
-            val directBytes = queryNetworkStatsForUid(uid, windowStart, now)
-            if (directBytes != null) {
-                sums[packageName] = directBytes
-                trafficHistory.remove(packageName)
-                trafficSnapshots.remove(packageName)
-                continue
-            }
-
             collectTrafficFromSnapshots(packageName, uid, now, windowMillis)?.let { sum ->
                 sums[packageName] = sum
             }
@@ -383,105 +406,6 @@ class MainViewModel(
         return history.sumOf { it.second }
     }
 
-    private fun queryNetworkStatsForUid(uid: Int, start: Long, end: Long): Long? {
-        val manager = networkStatsManager ?: return null
-        val templates = buildNetworkTemplates()
-        if (templates.isEmpty()) return null
-
-        var total = 0L
-        var hasData = false
-        val bucket = NetworkStats.Bucket()
-
-        for (template in templates) {
-            val stats = runCatching {
-                manager.queryDetailsForUid(template, start, end, uid)
-            }.getOrNull() ?: continue
-
-            try {
-                while (stats.hasNextBucket()) {
-                    stats.getNextBucket(bucket)
-                    total += bucket.rxBytes + bucket.txBytes
-                    hasData = true
-                }
-            } catch (_: SecurityException) {
-                return null
-            } finally {
-                stats.close()
-            }
-        }
-
-        return if (hasData) total else null
-    }
-
-    private fun buildNetworkTemplates(): List<NetworkTemplate> {
-        val templates = mutableListOf<NetworkTemplate>()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            templates += NetworkTemplate.Builder(NetworkTemplate.MATCH_WIFI).build()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                templates += NetworkTemplate.Builder(NetworkTemplate.MATCH_ETHERNET).build()
-            }
-            val subscriberIds = activeSubscriberIds()
-            if (subscriberIds.isEmpty()) {
-                templates += NetworkTemplate.Builder(NetworkTemplate.MATCH_MOBILE).build()
-            } else {
-                subscriberIds.forEach { id ->
-                    templates += NetworkTemplate.Builder(NetworkTemplate.MATCH_MOBILE)
-                        .setSubscriberIds(setOf(id))
-                        .build()
-                }
-            }
-        } else {
-            templates += NetworkTemplate.buildTemplateWifiWildcard()
-            templates += NetworkTemplate.buildTemplateEthernet()
-            val subscriberIds = activeSubscriberIds()
-            if (subscriberIds.isEmpty()) {
-                templates += NetworkTemplate.buildTemplateMobileWildcard()
-            } else {
-                subscriberIds.forEach { id ->
-                    templates += NetworkTemplate.buildTemplateMobileAll(id)
-                }
-            }
-        }
-
-        return templates
-    }
-
-    @SuppressLint("MissingPermission", "HardwareIds")
-    private fun activeSubscriberIds(): Set<String> {
-        val subscriptionManager =
-            appContext.getSystemService(SubscriptionManager::class.java) ?: return emptySet()
-        val telephonyManager =
-            appContext.getSystemService(TelephonyManager::class.java) ?: return emptySet()
-
-        val subscriptionIds = runCatching {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                subscriptionManager.activeSubscriptionIdList?.toList()
-            } else {
-                @Suppress("DEPRECATION")
-                subscriptionManager.activeSubscriptionInfoList?.map { it.subscriptionId }
-            }
-        }.getOrNull().orEmpty()
-
-        if (subscriptionIds.isEmpty()) return emptySet()
-
-        val result = mutableSetOf<String>()
-        for (subId in subscriptionIds) {
-            val managerForSub = telephonyManager.createForSubscriptionId(subId)
-            val subscriberId = runCatching {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    managerForSub.subscriberId
-                } else {
-                    @Suppress("DEPRECATION")
-                    managerForSub.subscriberId
-                }
-            }.getOrNull()
-            if (!subscriberId.isNullOrBlank()) {
-                result += subscriberId
-            }
-        }
-        return result
-    }
 
     companion object {
         private const val TAG = "MainViewModel"

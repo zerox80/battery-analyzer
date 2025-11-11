@@ -98,6 +98,31 @@ fun AppUsageHome(
     val tabCounts = listOf(state.recentApps.size, state.rareApps.size, state.disabledApps.size)
     val selectedTabIndex = remember { mutableIntStateOf(0) }
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+    val blockedApps = remember(
+        manualFirewallUnblock,
+        state.firewallBlockedPackages,
+        state.recentApps,
+        state.rareApps,
+        state.disabledApps
+    ) {
+        if (!manualFirewallUnblock) {
+            emptyList<AppUsageInfo>()
+        } else {
+            val lookup = (state.recentApps + state.rareApps + state.disabledApps)
+                .associateBy { it.packageName }
+            state.firewallBlockedPackages.map { pkg ->
+                lookup[pkg] ?: AppUsageInfo(
+                    packageName = pkg,
+                    appLabel = pkg,
+                    lastUsedAt = null,
+                    status = AppUsageStatus.RARE,
+                    isDisabled = false,
+                    scheduledDisableAt = null,
+                    notifiedAt = null
+                )
+            }
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -148,21 +173,6 @@ fun AppUsageHome(
                 item { Spacer(modifier = Modifier.height(20.dp)) }
 
                 if (manualFirewallUnblock) {
-                    val blockedApps = remember(state.firewallBlockedPackages, state.recentApps, state.rareApps, state.disabledApps) {
-                        val lookup = (state.recentApps + state.rareApps + state.disabledApps)
-                            .associateBy { it.packageName }
-                        state.firewallBlockedPackages.map { pkg ->
-                            lookup[pkg] ?: AppUsageInfo(
-                                packageName = pkg,
-                                appLabel = pkg,
-                                lastUsedAt = null,
-                                status = AppUsageStatus.RARE,
-                                isDisabled = false,
-                                scheduledDisableAt = null,
-                                notifiedAt = null
-                            )
-                        }
-                    }
                     item {
                         ManualFirewallSection(
                             modifier = Modifier
@@ -218,7 +228,10 @@ fun AppUsageHome(
                         selectedTabIndex = selectedTabIndex.intValue,
                         onTabSelected = { selectedTabIndex.intValue = it },
                         onRestoreApp = onRestoreApp,
-                        onOpenAppInfo = onOpenAppInfo
+                        onOpenAppInfo = onOpenAppInfo,
+                        manualFirewallEnabled = manualFirewallUnblock,
+                        blockedPackages = state.firewallBlockedPackages,
+                        onManualUnblock = onManualUnblock
                     )
                 }
             }
@@ -316,7 +329,10 @@ private fun AppListContainer(
     selectedTabIndex: Int,
     onTabSelected: (Int) -> Unit,
     onRestoreApp: (String) -> Unit,
-    onOpenAppInfo: (String) -> Unit
+    onOpenAppInfo: (String) -> Unit,
+    manualFirewallEnabled: Boolean,
+    blockedPackages: Set<String>,
+    onManualUnblock: (String) -> Unit
 ) {
     ElevatedCard(
         modifier = modifier,
@@ -373,7 +389,10 @@ private fun AppListContainer(
                             apps = state.recentApps,
                             emptyText = R.string.empty_state_recent,
                             onRestoreApp = onRestoreApp,
-                            onOpenAppInfo = onOpenAppInfo
+                            onOpenAppInfo = onOpenAppInfo,
+                            manualFirewallEnabled = manualFirewallEnabled,
+                            blockedPackages = blockedPackages,
+                            onManualUnblock = onManualUnblock
                         )
 
                         1 -> AppList(
@@ -381,7 +400,10 @@ private fun AppListContainer(
                             apps = state.rareApps,
                             emptyText = R.string.empty_state_rare,
                             onRestoreApp = onRestoreApp,
-                            onOpenAppInfo = onOpenAppInfo
+                            onOpenAppInfo = onOpenAppInfo,
+                            manualFirewallEnabled = manualFirewallEnabled,
+                            blockedPackages = blockedPackages,
+                            onManualUnblock = onManualUnblock
                         )
 
                         2 -> AppList(
@@ -390,7 +412,10 @@ private fun AppListContainer(
                             emptyText = R.string.empty_state_disabled,
                             onRestoreApp = onRestoreApp,
                             onOpenAppInfo = onOpenAppInfo,
-                            showRestore = true
+                            showRestore = true,
+                            manualFirewallEnabled = manualFirewallEnabled,
+                            blockedPackages = blockedPackages,
+                            onManualUnblock = onManualUnblock
                         )
                     }
                 }
@@ -708,7 +733,10 @@ private fun AppList(
     emptyText: Int,
     onRestoreApp: (String) -> Unit,
     onOpenAppInfo: (String) -> Unit,
-    showRestore: Boolean = false
+    showRestore: Boolean = false,
+    manualFirewallEnabled: Boolean,
+    blockedPackages: Set<String>,
+    onManualUnblock: (String) -> Unit
 ) {
     if (apps.isEmpty()) {
         Box(
@@ -728,7 +756,10 @@ private fun AppList(
                     app = appInfo,
                     onOpenAppInfo = { onOpenAppInfo(appInfo.packageName) },
                     showRestore = showRestore,
-                    onRestore = { onRestoreApp(appInfo.packageName) }
+                    onRestore = { onRestoreApp(appInfo.packageName) },
+                    manualFirewallEnabled = manualFirewallEnabled,
+                    isManuallyBlocked = appInfo.packageName in blockedPackages,
+                    onManualUnblock = { onManualUnblock(appInfo.packageName) }
                 )
             }
         }
