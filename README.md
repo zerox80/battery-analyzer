@@ -14,6 +14,3 @@ PrivacyGuard Firewall is an Android app that monitors and selectively blocks out
 
 ### Support
 Please report bugs or feature requests as issues. Send security-related information to rujbin@proton.me.
-
-
-Translated with DeepL.com (free version)
