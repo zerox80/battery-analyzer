@@ -84,6 +84,9 @@
     <string name="metrics_disabled_hint">Aktivieren Sie die Metriken, um Datenverkehrwerte zu sammeln.</string>
     <string name="metrics_empty_list">Keine selten genutzten Apps gefunden.</string>
     <string name="metrics_traffic_title">Datenverkehr (letzte 10 Minuten)</string>
+    <string name="metrics_refresh_button" translatable="false">Jetzt aktualisieren</string>
+
+    <string name="summary_jump_to_lists" translatable="false">Zu den App-Listen springen</string>
 
     <plurals name="duration_days">
         <item quantity="one">%d Tag</item>

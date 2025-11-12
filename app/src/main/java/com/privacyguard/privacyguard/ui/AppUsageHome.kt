@@ -1,4 +1,4 @@
-﻿package com.privacyguard.privacyguard.ui
+package com.privacyguard.privacyguard.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.Block
 import androidx.compose.material.icons.outlined.Bolt
+import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.Inbox
@@ -30,6 +33,7 @@ import android.text.format.DateUtils
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
@@ -54,6 +58,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -73,6 +78,7 @@ import com.privacyguard.privacyguard.ui.state.AppHomeState
 import com.privacyguard.privacyguard.ui.state.FirewallUiState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -88,7 +94,8 @@ fun AppUsageHome(
     onBlockNow: () -> Unit,
     manualFirewallUnblock: Boolean,
     onManualUnblock: (String) -> Unit,
-    onOpenNavigation: () -> Unit
+    onOpenNavigation: () -> Unit,
+    onShowAppLists: () -> Unit = {}
 ) {
     val tabs = listOf(
         stringResource(id = R.string.tab_recent),
@@ -97,6 +104,9 @@ fun AppUsageHome(
     )
     val tabCounts = listOf(state.recentApps.size, state.rareApps.size, state.disabledApps.size)
     val selectedTabIndex = remember { mutableIntStateOf(0) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
+    val appListItemIndex = 6
     val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -132,7 +142,10 @@ fun AppUsageHome(
             )
         } else {
             LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                state = listState,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
                 contentPadding = PaddingValues(bottom = 24.dp)
             ) {
                 item {
@@ -140,7 +153,13 @@ fun AppUsageHome(
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .fillMaxWidth(),
-                        permissionGranted = state.usagePermissionGranted
+                        permissionGranted = state.usagePermissionGranted,
+                        onShowAppLists = {
+                            scope.launch {
+                                listState.animateScrollToItem(appListItemIndex)
+                                onShowAppLists()
+                            }
+                        }
                     )
                 }
 
@@ -456,7 +475,11 @@ private fun FirewallCard(
 }
 
 @Composable
-private fun SummaryHero(modifier: Modifier = Modifier, permissionGranted: Boolean) {
+private fun SummaryHero(
+    modifier: Modifier = Modifier,
+    permissionGranted: Boolean,
+    onShowAppLists: () -> Unit
+) {
     val gradient = Brush.linearGradient(
         colors = listOf(
             MaterialTheme.colorScheme.primaryContainer,
@@ -491,6 +514,14 @@ private fun SummaryHero(modifier: Modifier = Modifier, permissionGranted: Boolea
                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
                 )
                 PermissionStatusChip(isGranted = permissionGranted)
+                Button(
+                    onClick = onShowAppLists,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.inversePrimary)
+                ) {
+                    Icon(imageVector = Icons.Outlined.ArrowDownward, contentDescription = null)
+                    Spacer(modifier = Modifier.size(8.dp))
+                    Text(text = stringResource(id = R.string.summary_jump_to_lists))
+                }
             }
         }
     }

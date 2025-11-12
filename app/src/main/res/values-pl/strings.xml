@@ -87,21 +87,25 @@
 
     <plurals name="duration_days">
         <item quantity="one">%d Dzień</item>
+        <item quantity="many">%d Dni</item>
         <item quantity="few">%d Dni</item>
         <item quantity="other">%d Dni</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%d Godzina</item>
+        <item quantity="many">%d Godzin</item>
         <item quantity="few">%d Godziny</item>
         <item quantity="other">%d Godzin</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%d Minuta</item>
+        <item quantity="many">%d Minut</item>
         <item quantity="few">%d Minuty</item>
         <item quantity="other">%d Minut</item>
     </plurals>
     <plurals name="duration_seconds">
         <item quantity="one">%d Sekunda</item>
+        <item quantity="many">%d Sekund</item>
         <item quantity="few">%d Sekundy</item>
         <item quantity="other">%d Sekund</item>
     </plurals>

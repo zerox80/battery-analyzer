@@ -87,18 +87,26 @@
 
     <plurals name="duration_days">
         <item quantity="one">%d День</item>
+        <item quantity="few">%d Дня</item>
+        <item quantity="many">%d Дней</item>
         <item quantity="other">%d Дней</item>
     </plurals>
     <plurals name="duration_hours">
         <item quantity="one">%d Час</item>
+        <item quantity="few">%d Часа</item>
+        <item quantity="many">%d Часов</item>
         <item quantity="other">%d Часов</item>
     </plurals>
     <plurals name="duration_minutes">
         <item quantity="one">%d Минута</item>
+        <item quantity="few">%d Минуты</item>
+        <item quantity="many">%d Минут</item>
         <item quantity="other">%d Минут</item>
     </plurals>
     <plurals name="duration_seconds">
         <item quantity="one">%d Секунда</item>
+        <item quantity="few">%d Секунды</item>
+        <item quantity="many">%d Секунд</item>
         <item quantity="other">%d Секунд</item>
     </plurals>
 </resources>

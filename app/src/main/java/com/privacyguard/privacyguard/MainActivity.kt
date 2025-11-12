@@ -76,6 +76,9 @@ class MainActivity : ComponentActivity() {
                         },
                         onManualFirewallUnblock = { packageName ->
                             lifecycleScope.launch { viewModel.manualUnblockPackage(packageName) }
+                        },
+                        onRefreshMetrics = {
+                            lifecycleScope.launch { viewModel.refreshMetricsNow() }
                         }
                     )
                 }

@@ -1,4 +1,4 @@
-﻿package com.privacyguard.privacyguard.ui
+package com.privacyguard.privacyguard.ui
 
 import android.text.format.DateUtils
 import androidx.annotation.StringRes
@@ -79,7 +79,8 @@ fun PrivacyGuardRoot(
     onUpdateAllowDuration: (Long) -> Unit,
     onToggleMetrics: (Boolean) -> Unit,
     onManualFirewallUnblockChange: (Boolean) -> Unit,
-    onManualFirewallUnblock: (String) -> Unit
+    onManualFirewallUnblock: (String) -> Unit,
+    onRefreshMetrics: () -> Unit
 ) {
     val uiState by uiStateFlow.collectAsState()
     PrivacyGuardRoot(
@@ -95,7 +96,8 @@ fun PrivacyGuardRoot(
         onUpdateAllowDuration = onUpdateAllowDuration,
         onToggleMetrics = onToggleMetrics,
         onManualFirewallUnblockChange = onManualFirewallUnblockChange,
-        onManualFirewallUnblock = onManualFirewallUnblock
+        onManualFirewallUnblock = onManualFirewallUnblock,
+        onRefreshMetrics = onRefreshMetrics
     )
 }
 
@@ -114,7 +116,8 @@ fun PrivacyGuardRoot(
     onUpdateAllowDuration: (Long) -> Unit,
     onToggleMetrics: (Boolean) -> Unit,
     onManualFirewallUnblockChange: (Boolean) -> Unit,
-    onManualFirewallUnblock: (String) -> Unit
+    onManualFirewallUnblock: (String) -> Unit,
+    onRefreshMetrics: () -> Unit
 ) {
     val navController = rememberNavController()
     val drawerState = androidx.compose.material3.rememberDrawerState(initialValue = androidx.compose.material3.DrawerValue.Closed)
@@ -204,6 +207,7 @@ fun PrivacyGuardRoot(
                     trafficByPackage = uiState.appTraffic,
                     lastSampleAt = uiState.metricsLastSampleAt,
                     onToggleMetrics = onToggleMetrics,
+                    onRefreshMetrics = onRefreshMetrics,
                     onOpenNavigation = {
                         scope.launch { drawerState.open() }
                     }
@@ -331,6 +335,7 @@ private fun MetricsScreen(
     trafficByPackage: Map<String, Long>,
     lastSampleAt: Long?,
     onToggleMetrics: (Boolean) -> Unit,
+    onRefreshMetrics: () -> Unit,
     onOpenNavigation: () -> Unit
 ) {
     val sortedApps = apps.sortedByDescending { trafficByPackage[it.packageName] ?: 0L }
@@ -388,6 +393,14 @@ private fun MetricsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 12.dp)
                 )
+                if (metricsEnabled) {
+                    Button(
+                        onClick = onRefreshMetrics,
+                        modifier = Modifier.padding(top = 16.dp)
+                    ) {
+                        Text(text = stringResource(id = R.string.metrics_refresh_button))
+                    }
+                }
             }
 
             if (metricsEnabled) {

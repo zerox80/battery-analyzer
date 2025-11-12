@@ -1,9 +1,13 @@
 package com.privacyguard.privacyguard
 
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.TrafficStats
 import android.os.Build
+import android.os.RemoteException
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -25,12 +29,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.ArrayDeque
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
-import java.util.ArrayDeque
 import kotlin.collections.buildList
 
 class MainViewModel(
@@ -46,6 +50,7 @@ class MainViewModel(
     val uiState: StateFlow<AppHomeState> = _uiState.asStateFlow()
 
     private val packageManager = appContext.packageManager
+    private val networkStatsManager = appContext.getSystemService(NetworkStatsManager::class.java)
     private val uidCache = mutableMapOf<String, Int>()
     private val trafficSnapshots = mutableMapOf<String, Long>()
     private val trafficHistory = mutableMapOf<String, ArrayDeque<Pair<Long, Long>>>()
@@ -162,6 +167,13 @@ class MainViewModel(
                 manualUnblockCooldown.clear()
                 syncFirewallBlockList()
             }
+        }
+    }
+
+    fun refreshMetricsNow() {
+        if (!_uiState.value.metricsEnabled) return
+        viewModelScope.launch(Dispatchers.IO) {
+            sampleAppTraffic()
         }
     }
 
@@ -427,23 +439,36 @@ class MainViewModel(
             return
         }
 
-        val sums = mutableMapOf<String, Long>()
         val trackedPackageSet = trackedPackages.toSet()
-
-        for (packageName in trackedPackages) {
-            val uid = resolveUid(packageName) ?: continue
-            collectTrafficFromSnapshots(packageName, uid, now, windowMillis)?.let { sum ->
-                sums[packageName] = sum
-            }
+        val packageUidPairs = trackedPackages.mapNotNull { packageName ->
+            resolveUid(packageName)?.let { uid -> packageName to uid }
         }
 
-        val iterator = trafficHistory.keys.iterator()
-        while (iterator.hasNext()) {
-            val key = iterator.next()
-            if (key !in trackedPackageSet) {
-                iterator.remove()
-                trafficSnapshots.remove(key)
+        val networkStatsSums = collectTrafficViaNetworkStats(packageUidPairs, now - windowMillis, now)
+
+        val sums: Map<String, Long>
+        if (networkStatsSums != null) {
+            trafficHistory.clear()
+            trafficSnapshots.clear()
+            sums = networkStatsSums
+        } else {
+            val fallbackSums = mutableMapOf<String, Long>()
+            for ((packageName, uid) in packageUidPairs) {
+                collectTrafficFromSnapshots(packageName, uid, now, windowMillis)?.let { sum ->
+                    fallbackSums[packageName] = sum
+                }
             }
+
+            val iterator = trafficHistory.keys.iterator()
+            while (iterator.hasNext()) {
+                val key = iterator.next()
+                if (key !in trackedPackageSet) {
+                    iterator.remove()
+                    trafficSnapshots.remove(key)
+                }
+            }
+
+            sums = fallbackSums
         }
 
         _uiState.update { state ->
@@ -478,6 +503,81 @@ class MainViewModel(
         return history.sumOf { it.second }
     }
 
+    private fun collectTrafficViaNetworkStats(
+        packageUidPairs: List<Pair<String, Int>>,
+        start: Long,
+        end: Long
+    ): Map<String, Long>? {
+        val manager = networkStatsManager ?: return null
+        if (packageUidPairs.isEmpty()) return emptyMap()
+
+        val safeStart = start.coerceAtLeast(0L)
+        val uidToPackage = packageUidPairs.associate { (packageName, uid) -> uid to packageName }
+        val totals = mutableMapOf<String, Long>()
+        val bucket = android.app.usage.NetworkStats.Bucket()
+
+        val networkTypes = buildList {
+            add(ConnectivityManager.TYPE_WIFI)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                add(ConnectivityManager.TYPE_ETHERNET)
+            }
+        }
+
+        try {
+            for (networkType in networkTypes) {
+                val stats = try {
+                    manager.querySummary(networkType, null, safeStart, end)
+                } catch (error: SecurityException) {
+                    Log.w(TAG, "Network stats permission missing", error)
+                    return null
+                } catch (error: RemoteException) {
+                    Log.w(TAG, "Unable to query network stats", error)
+                } catch (error: RuntimeException) {
+                    Log.v(TAG, "Skipping network type $networkType", error)
+                    null
+                } ?: continue
+
+                val statsClass = stats.javaClass
+                val hasNextBucketMethod = runCatching { statsClass.getMethod("hasNextBucket") }.getOrNull()
+                val getNextBucketMethod = runCatching { statsClass.getMethod("getNextBucket", bucket.javaClass) }.getOrNull()
+                val closeMethod = runCatching { statsClass.getMethod("close") }.getOrNull()
+
+                if (hasNextBucketMethod == null || getNextBucketMethod == null) {
+                    Log.w(TAG, "Network stats iteration unsupported for type $networkType")
+                    runCatching { closeMethod?.invoke(stats) }
+                    continue
+                }
+
+                try {
+                    while ((hasNextBucketMethod.invoke(stats) as? Boolean) == true) {
+                        getNextBucketMethod.invoke(stats, bucket)
+                        val packageName = uidToPackage[bucket.uid] ?: continue
+                        val bytes = bucket.rxBytes + bucket.txBytes
+                        if (bytes <= 0) continue
+                        totals[packageName] = (totals[packageName] ?: 0L) + bytes
+                    }
+                } catch (error: ReflectiveOperationException) {
+                    Log.w(TAG, "Failed to iterate network stats", error)
+                    runCatching { closeMethod?.invoke(stats) }
+                    return null
+                } catch (error: ClassCastException) {
+                    Log.w(TAG, "Unexpected network stats result", error)
+                    runCatching { closeMethod?.invoke(stats) }
+                    return null
+                }
+
+                runCatching { closeMethod?.invoke(stats) }
+            }
+        } catch (error: SecurityException) {
+            Log.w(TAG, "Missing permission for network stats", error)
+            return null
+        } catch (error: RemoteException) {
+            Log.w(TAG, "Network stats service error", error)
+            return null
+        }
+
+        return totals
+    }
 
     companion object {
         private const val TAG = "MainViewModel"
